@@ -16,6 +16,8 @@ int sequence[100];
 int inputs[100];
 int sequenceIndex = 0;
 int level = 0;
+int check = 0;
+
 int redValue;
 int greenValue;
 int blueValue;
@@ -24,37 +26,39 @@ int yellowValue;
 void playSequence() {
   int i = 0;
   
-  while (i < level)
+  while (i <= level)
   {
     int button = sequence[i];
     
-    switch (button) {
-      case 0:
+      if (sequence[i] == 1)
+      {
         digitalWrite(red, HIGH);
         delay(1000);
         digitalWrite(red, LOW);
         delay(1000);
-        break;
-      case 1:
+      }
+      if (sequence[i] == 2)
+      {
         digitalWrite(yellow, HIGH);
         delay(1000);
         digitalWrite(yellow, LOW);
         delay(1000);
-        break;
-      case 2:
+      }
+      if (sequence[i] == 3)
+      {
         digitalWrite(green, HIGH);
         delay(1000);
         digitalWrite(green, LOW);
         delay(1000);
-        break;
-      case 3:
+  	  }
+      if (sequence[i] == 4)
+      {
         digitalWrite(blue, HIGH);
         delay(1000);
         digitalWrite(blue, LOW);
         delay(1000);
-        break;
-    }
-    i++;
+      }
+      i++;
   }
   checkInputs();
 }
@@ -63,51 +67,138 @@ void checkInputs()
 {
   
   if (digitalRead(btnRed) == LOW) {
-    delay(300);  // Ajoutez une petite pause pour éviter les rebonds
-    if (inputs[sequenceIndex] == 0)
+    delay(100);  // Ajoutez une petite pause pour éviter les rebonds
+    if (inputs[sequenceIndex] == 1)
     {
-      inputs[sequenceIndex] == 1; // 1 = rouge
-      sequenceIndex++;
-    }
+  		inputs[sequenceIndex] = 1; // 1 = rouge
+  		sequenceIndex++;
+      	digitalWrite(red, HIGH);
+        delay(1000);
+        digitalWrite(red, LOW);
+        delay(1000);
+	}
+
   }
   if (digitalRead(btnYellow) == LOW) {
-    delay(300);  // Ajoutez une petite pause pour éviter les rebonds
+    delay(100);  // Ajoutez une petite pause pour éviter les rebonds
     if (inputs[sequenceIndex] == 0)
     {
       inputs[sequenceIndex] == 2; // 2 = jaune
       sequenceIndex++;
+      digitalWrite(yellow, HIGH);
+        delay(1000);
+        digitalWrite(yellow, LOW);
+        delay(1000);
     }
   }
   if (digitalRead(btnGreen) == LOW) {
-    delay(300);  // Ajoutez une petite pause pour éviter les rebonds
+    delay(100);  // Ajoutez une petite pause pour éviter les rebonds
     if (inputs[sequenceIndex] == 0)
     {
       inputs[sequenceIndex] == 3; // 3 = vert
       sequenceIndex++;
+      digitalWrite(green, HIGH);
+      delay(1000);
+      digitalWrite(green, LOW);
+      delay(1000);
     }
   }
   
   if (digitalRead(btnBlue) == LOW)
   {
-    delay(300);  // Ajoutez une petite pause pour éviter les rebonds
+    delay(100);  // Ajoutez une petite pause pour éviter les rebonds
     if (inputs[sequenceIndex] == 0)
     {
-      inputs[sequenceIndex] == 4; // 4 = bleu
+      inputs[sequenceIndex] = 4; // 4 = bleu
       sequenceIndex++;
+      digitalWrite(blue, HIGH);
+      delay(1000);
+      digitalWrite(blue, LOW);
+      delay(1000);
     }
   }
 }
 
-void checkTabs() {
-  // j'ai compris tout s'iterera me faut juste un tableau d'inputs 
-  // a checker dans une fonction qui peut arreter le programme
-  // et qui reset a chaque tableau rempli juste toutes les 
-  // "cases" de celui-ci a 0 (1 rouge, 2 bleu, ...)
-  // t'as capte facile juste chiant la j'ai pas envie
-  // force a toi si tu t'y mets
+void resetTab(int tab[])
+{
+  int i = 0;
   
-  
+  while (i < 100)
+  {
+    tab[i] = 0;
+    i++;
+  }
 }
+
+int checkIndex()
+{
+  int i = 0;
+  int index = 0;
+  
+  while (i < 100)
+  {
+    if (inputs[i] > 0 && i < 100)
+    {  
+      i++;
+      index++;
+    }
+    else 
+    {
+      return index;
+    }
+  }
+  return index;
+}
+
+
+
+void checkTabs()
+{
+  checkInputs();
+  
+  // Check if inputs array is full and matches sequence array
+  int i = 0;
+
+  while (i < sequenceIndex) {
+    if (inputs[i] != sequence[i] && i > 0) {
+      // If input does not match sequence, game is lost
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Game Over !");
+      delay(2000);
+      exit(0); // Exit the program
+    }
+    i++;
+  }
+
+  // If inputs array is full and matches sequence array, game is won
+  if (sequenceIndex == level and i > 0) {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Next level !");
+    delay(2000);
+    lcd.clear();
+    resetTab(sequence);
+    resetTab(inputs);
+    check--;
+    level++;
+  }
+  
+  if (inputs[0] == sequence[0] && level == 0)
+  {
+  	lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Next level !");
+    delay(2000);
+    lcd.clear();
+    resetTab(sequence);
+    resetTab(inputs);
+    check--;
+    level++;
+  }
+}
+
+
 
 
 void generateSequence() {
@@ -144,17 +235,17 @@ void setup() {
   delay(2000);
   
   generateSequence();
-  Serial.begin(9600);
 }
 
 void loop()
 {
-  	int check = 0;
-  	
-  	checkTabs();
+  
+  	Serial.print("check = ");
+  	Serial.println(check);
   	if (check == 0)
     {
   		Serial.println("i generate the sequence.");
+      	generateSequence();
 		playSequence();
 	    Serial.println("the sequence is generated.");
       	check++;
@@ -162,34 +253,32 @@ void loop()
 	
   	if (check == 1)
     {
+      	checkInputs();
+      	checkTabs();
     	Serial.println("i read the inputs.");
-		checkInputs();
+      
+      	int i = 0;
+        while (i < level)
+        {
+            Serial.print(sequence[i]);
+            i++;
+        }
+        Serial.println(sequence[i++]);
+        i = 0;
+        while (i < level)
+        {
+            Serial.print(inputs[i]);
+            i++;
+        }
+        Serial.println(inputs[i++]);
     }
   	
 	if (sequenceIndex > level)
     {
-		level++;
-		sequenceIndex = 0;
-		generateSequence();
 		lcd.clear();
 		lcd.setCursor(0, 0);
 		lcd.print("Niveau: ");
 		lcd.print(level);
 		delay(2000);
-	}
-  
-  	int i = 0;
-  	while (i < 9)
-    {
-  		Serial.print(sequence[i]);
-      	i++;
     }
-  	Serial.println(sequence[i++]);
-  	i = 0;
-  	while (i < 9)
-    {
-  		Serial.print(inputs[i]);
-    }
-  	Serial.println(inputs[i++]);
-  	i = 0;
 }
